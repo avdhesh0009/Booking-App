@@ -5,6 +5,7 @@ const mongoose=require('mongoose');
 require('dotenv').config();
 const User=require('./models/User.js');
 const Place=require('./models/Place.js');
+const Booking=require('./models/Booking.js');
 const bcrypt=require('bcryptjs');
 const jwt=require('jsonwebtoken');
 const cookieParser=require('cookie-parser');
@@ -117,25 +118,30 @@ app.post('/upload-by-link',async (req,res)=>{
     res.json(newName);
 })
 
-app.post('/upload',upload.single('photos'),(req,res)=>{
-    try{
-        res.status(200).json({message:'File uploaded successfully!',filename: req.file.filename});
+app.post('/upload', upload.array('photos', 10), (req, res) => {
+    try {
+        const files = req.files;
+        if (!files) {
+            return res.status(400).json({ message: 'No files uploaded.' });
+        }
+
+        const filenames = files.map(file => file.filename);
+        res.status(200).json({ message: 'Files uploaded successfully!', filenames: filenames });
+    } catch (error) {
+        res.status(400).json({ message: error.message });
     }
-    catch(error){
-        res.status(400).json({message:error.message})
-    }
-})
+});
 
 app.post('/places',(req,res)=>{
     const {token}=req.cookies;
     const { title,address,addedPhotos,
             description,perks,extraInfo,
-            checkIn,checkOut,maxGuests} = req.body.placeData;
+            checkIn,checkOut,maxGuests,price} = req.body.placeData;
     
     jwt.verify(token,jwtSecret,{},async (err,userData)=>{
         if(err) throw err;
         const placeDoc = await Place.create({
-            owner:userData.id,
+            owner:userData.id,price,
             title,address,photos:addedPhotos,
             description,perks,extraInfo,
             checkIn,checkOut,maxGuests
@@ -145,7 +151,7 @@ app.post('/places',(req,res)=>{
 })
 
 
-app.get('/places',(req,res)=>{
+app.get('/user-places',(req,res)=>{
     const {token}=req.cookies;
     jwt.verify(token,jwtSecret,{},async (err,userData)=>{
         const {id}=userData;
@@ -163,7 +169,7 @@ app.put('/places',async (req,res)=>{
     const {
         id,title,address,addedPhotos,
         description,perks,extraInfo,
-        checkIn,checkOut,maxGuests
+        checkIn,checkOut,maxGuests,price,
     } = req.body;
 
     jwt.verify(token,jwtSecret,{},async (err,userData)=>{
@@ -175,12 +181,40 @@ app.put('/places',async (req,res)=>{
             placeDoc.set({
                 title,address,photos:addedPhotos,
                 description,perks,extraInfo,
-                checkIn,checkOut,maxGuests
+                checkIn,checkOut,maxGuests,price,
             })
             await placeDoc.save();
             res.json('ok');
         }
     });
+})
+
+app.get('/places',async (req,res)=>{
+    res.json(await Place.find());
+})
+
+app.post('/bookings', (req,res)=>{
+    const {
+        place,checkIn,
+        checkOut,numberOfGuests,name,phone,price,
+    } = req.body;
+    const {token} =req.cookies;
+    jwt.verify(token,jwtSecret,{},async (err,userData)=>{
+        if(err) throw err;
+        res.json(await Booking.create({
+            place,checkIn,
+            checkOut,numberOfGuests,name,phone,price,
+            user:userData.id,
+        }));
+    })
+})
+
+app.get('/bookings',(req,res)=>{
+    const {token} =req.cookies;
+    jwt.verify(token,jwtSecret,{},async (err,userData)=>{
+        if(err) throw err;
+        res.json(await Booking.find({user:userData.id}).populate('place'));
+    })
 })
 
 app.listen(3000);

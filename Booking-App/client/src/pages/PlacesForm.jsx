@@ -18,7 +18,7 @@ export default function PlacesForm(){
     const [checkOut,setCheckOut]=useState('');
     const [maxGuests,setMaxGuests]=useState(1);
     const [redirect,setRedirect]=useState(false);
-
+    const [price,setPrice]=useState(100);
     useEffect(()=>{
         if(!id) return;
         axios.get('places/'+id)
@@ -33,6 +33,7 @@ export default function PlacesForm(){
             setCheckIn(data.checkIn);
             setCheckOut(data.checkOut);
             setMaxGuests(data.maxGuests);
+            setPrice(data.price);
         })
     },[id])
 
@@ -59,7 +60,7 @@ export default function PlacesForm(){
         const placeData={
             title,address,addedPhotos,
             description,perks,extraInfo,
-            checkIn,checkOut,maxGuests
+            checkIn,checkOut,maxGuests,price
         };
         if(id){
             // update
@@ -122,7 +123,7 @@ export default function PlacesForm(){
                 <textarea value={extraInfo} onChange={ev=>setExtraInfo(ev.target.value)}/>
 
                 {preInput('Check in&out times','Add check in and out times, remember to have some time window for cleaning the room between guests')}
-                <div className="grid gap-2 sm:grid-cols-3">
+                <div className="grid gap-2 md:grid-cols-4 grid-cols-2">
                     <div>
                         <h3 className="mt-2 -mb-1">Check in time</h3>
                         <input type="text" placeholder="14:00"
@@ -142,6 +143,13 @@ export default function PlacesForm(){
                         <input type="number" placeholder="0"
                         value={maxGuests}
                         onChange={ev=>setMaxGuests(ev.target.value)}
+                        />
+                    </div>
+                    <div>
+                        <h3 className="mt-2 -mb-1">Price per night</h3>
+                        <input type="number" placeholder="0"
+                        value={price}
+                        onChange={ev=>setPrice(ev.target.value)}
                         />
                     </div>
                 </div>
